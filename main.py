@@ -2,7 +2,7 @@ import csv
 
 # Generate the SELECT statement for fetching the existing customer details - to be used for creating new customer address records
 def generate_customer_data_select_query():
-    input_csv_path = 'argentina_addresses_to_update.csv'
+    input_csv_path = 'test.csv'
     output_sql_path = 'select_statement.sql'
 
     # Open the CSV input and output SQL files
@@ -19,7 +19,7 @@ def generate_customer_data_select_query():
         buyer_ids_str = ', '.join(map(str, buyer_ids))
 
         sql_file.write(f"-- Fetching customer details for Buyer IDs\n")
-        sql_file.write(f"SELECT entity_id, company, firstname, lastname, middlename, telephone FROM customer_entity WHERE entity_id IN ({buyer_ids_str});\n")
+        sql_file.write(f"SELECT entity_id, firstname, lastname, middlename, phone_number FROM customer_entity WHERE entity_id IN ({buyer_ids_str});\n")
 
     print(f"SQL script generated and saved to {output_sql_path}")
 
@@ -41,11 +41,10 @@ def generate_address_update_transaction():
         for row in reader1:
             buyer_id = row['entity_id']
             customer_data[buyer_id] = {
-                'company': row['company'],
                 'firstname': row['firstname'],
                 'lastname': row['lastname'],
                 'middlename': row['middlename'],
-                'telephone': row['telephone']
+                'phone_number': row['phone_number']
             }
         
         # Read csv address data - to combine with customer data when creating new address records below
@@ -71,9 +70,9 @@ def generate_address_update_transaction():
                     # Create new address record, combining the customer data and address data
                     sql_file.write(f"-- Inserting new address for Buyer ID: {buyer_id}\n")
                     customer = customer_data[buyer_id]
-                    sql_file.write(f"INSERT INTO customer_address_entity (parent_id, street, city, postcode, country_id, company, firstname, lastname, middlename, telephone) "             
+                    sql_file.write(f"INSERT INTO customer_address_entity (parent_id, street, city, postcode, country_id, firstname, lastname, middlename, telephone) "
                                    f"VALUES ({buyer_id}, '{street}', '{city}', '{postcode}', '{country_id}', "
-                                   f"'{customer['company']}', '{customer['firstname']}', '{customer['lastname']}', '{customer['middlename']}', '{customer['telephone']}');\n\n")
+                                   f"'{customer['firstname']}', '{customer['lastname']}', '{customer['middlename']}', '{customer['phone_number']}');\n\n")
                     
                     # Get the ID of the newly-created address record
                     sql_file.write(f"SET @new_address_id = LAST_INSERT_ID();\n\n")
