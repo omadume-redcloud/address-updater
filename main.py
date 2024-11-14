@@ -23,6 +23,13 @@ def generate_customer_data_select_query():
 
     print(f"SQL script generated and saved to {output_sql_path}")
 
+# Return NULL if the value is 'NULL' or an empty string, else return it wrapped in single quotes
+def check_for_null(value):
+    if value == "NULL" or value == "":
+        return "NULL"
+    else:
+        return f"'{value}'"
+
 # Generate the SQL transaction for performing the customer addresses update
 def generate_address_update_transaction():
     input_csv_path1 = 'customer_details.csv'
@@ -39,12 +46,12 @@ def generate_address_update_transaction():
         customer_data = {}
 
         for row in reader1:
-            buyer_id = row['entity_id']
+            buyer_id = check_for_null(row['entity_id'])
             customer_data[buyer_id] = {
-                'firstname': row['firstname'],
-                'lastname': row['lastname'],
-                'middlename': row['middlename'],
-                'phone_number': row['phone_number']
+                'firstname': check_for_null(row['firstname']),
+                'lastname': check_for_null(row['lastname']),
+                'middlename': check_for_null(row['middlename']),
+                'phone_number': check_for_null(row['phone_number'])
             }
         
         # Read csv address data - to combine with customer data when creating new address records below
@@ -58,21 +65,21 @@ def generate_address_update_transaction():
         
         try:
             for row in reader2:
-                buyer_id = row['Buyer ID'.strip()]
-                street = row['Street Number'.strip()]
-                city = row['City'.strip()]
-                postcode = row['Postal Code'.strip()]
+                buyer_id = check_for_null(row['Buyer ID'.strip()])
+                street = check_for_null(row['Street Number'.strip()])
+                city = check_for_null(row['City'.strip()])
+                postcode = check_for_null(row['Postal Code'.strip()])
                 country_id = 'AR' # Argentina
                 
-                if buyer_id not in unique_customers:
+                if buyer_id not in unique_customers and buyer_id in customer_data.keys():
                     unique_customers.add(buyer_id)
                     
                     # Create new address record, combining the customer data and address data
                     sql_file.write(f"-- Inserting new address for Buyer ID: {buyer_id}\n")
                     customer = customer_data[buyer_id]
                     sql_file.write(f"INSERT INTO customer_address_entity (parent_id, street, city, postcode, country_id, firstname, lastname, middlename, telephone) "
-                                   f"VALUES ({buyer_id}, '{street}', '{city}', '{postcode}', '{country_id}', "
-                                   f"'{customer['firstname']}', '{customer['lastname']}', '{customer['middlename']}', '{customer['phone_number']}');\n\n")
+                                   f"VALUES ({buyer_id}, {street}, {city}, {postcode}, '{country_id}', "
+                                   f"{customer['firstname']}, {customer['lastname']}, {customer['middlename']}, {customer['phone_number']});\n\n")
                     
                     # Get the ID of the newly-created address record
                     sql_file.write(f"SET @new_address_id = LAST_INSERT_ID();\n\n")
