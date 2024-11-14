@@ -97,5 +97,5 @@ def generate_address_update_transaction():
     print(f"SQL script generated and saved to {output_sql_path}")
 
 
-generate_customer_data_select_query()
+# generate_customer_data_select_query() # Run this first
 # generate_address_update_transaction()
