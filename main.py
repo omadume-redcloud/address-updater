@@ -22,7 +22,7 @@ def generate_customer_data_select_query():
         buyer_ids_str = ', '.join(map(str, buyer_ids))
 
         sql_file.write(f"-- Fetching customer details for Buyer IDs\n")
-        sql_file.write(f"SELECT entity_id, firstname, lastname, middlename, phone_number FROM {db_name}.customer_entity WHERE entity_id IN ({buyer_ids_str});\n") # These values cannot be null when creating new customer address records
+        sql_file.write(f"SELECT entity_id, firstname, lastname, phone_number FROM {db_name}.customer_entity WHERE entity_id IN ({buyer_ids_str});\n") # Maintaining consistency of these values when creating new customer address records (also cannot be null)
 
     print(f"SQL script generated and saved to {select_statement_sql_path}")
 
@@ -49,20 +49,18 @@ def generate_address_update_transaction():
             customer_data[buyer_id] = {
                 'firstname': check_for_null(row['firstname']),
                 'lastname': check_for_null(row['lastname']),
-                'middlename': check_for_null(row['middlename']),
                 'phone_number': check_for_null(row['phone_number'])
             }
-        
-        # Read csv address data - to combine with customer data when creating new address records below
-        reader2 = csv.DictReader(address_data_csv_file, delimiter=';') # Delimiter is ; instead of , for Portugal PC
-        unique_customers = set() # There are some customers with multiple addresses in the csv, but we only want to use their first one
-        
+                
         # Write the SQL transaction for updating addresses, specifying the transaction security level to facilitate being ACID
         sql_file.write("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n\n") # Isolation level wouldn't change in MySQL workbench without setting for entire session instead of just transaction
-
         sql_file.write("START TRANSACTION;\n\n")
         
         try:
+            # Read csv address data - to combine with customer data when creating new address records below
+            reader2 = csv.DictReader(address_data_csv_file, delimiter=';') # Delimiter is ; instead of , for Portugal PC
+            unique_customers = set() # There are some customers with multiple addresses in the csv, but we only want to use their first one
+
             for row in reader2:
                 buyer_id = check_for_null(row['Buyer ID'.strip()])
                 street = check_for_null(row['Street Number'.strip()])
@@ -74,11 +72,15 @@ def generate_address_update_transaction():
                     unique_customers.add(buyer_id)
                     
                     # Create new address record, combining the customer data and address data
-                    sql_file.write(f"-- Inserting new address for Buyer ID: {buyer_id}\n")
                     customer = customer_data[buyer_id]
-                    sql_file.write(f"INSERT INTO {db_name}.customer_address_entity (parent_id, street, city, postcode, country_id, firstname, lastname, middlename, telephone) "
+                    telephone = customer['phone_number']
+                    if telephone == "NULL": # Telephone cannot not be null for an address record, otherwise transaction will fail
+                        telephone = check_for_null(row['Buyer Phone Number'.strip()]) # Attempting to use excel one instead of existing DB customer record one
+                    
+                    sql_file.write(f"-- Inserting new address for Buyer ID: {buyer_id}\n")
+                    sql_file.write(f"INSERT INTO {db_name}.customer_address_entity (parent_id, street, city, postcode, country_id, firstname, lastname, telephone) "
                                    f"VALUES ({buyer_id}, {street}, {city}, {postcode}, '{country_id}', "
-                                   f"{customer['firstname']}, {customer['lastname']}, {customer['middlename']}, {customer['phone_number']});\n\n")
+                                   f"{customer['firstname']}, {customer['lastname']}, {telephone});\n\n")
                     
                     # Get the ID of the newly-created address record
                     sql_file.write(f"SET @new_address_id = LAST_INSERT_ID();\n\n")
