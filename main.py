@@ -2,7 +2,7 @@ import csv
 
 # Generate the SELECT statement for fetching the existing customer details - to be used for creating new customer address records
 def generate_customer_data_select_query():
-    input_csv_path = 'test.csv'
+    input_csv_path = 'argentina_addresses_to_update.csv'
     output_sql_path = 'select_statement.sql'
 
     # Open the CSV input and output SQL files
@@ -19,7 +19,7 @@ def generate_customer_data_select_query():
         buyer_ids_str = ', '.join(map(str, buyer_ids))
 
         sql_file.write(f"-- Fetching customer details for Buyer IDs\n")
-        sql_file.write(f"SELECT entity_id, firstname, lastname, middlename, phone_number FROM customer_entity WHERE entity_id IN ({buyer_ids_str});\n")
+        sql_file.write(f"SELECT entity_id, firstname, lastname, middlename, phone_number FROM customer_entity WHERE entity_id IN ({buyer_ids_str});\n") # These values cannot be null when creating new customer address records
 
     print(f"SQL script generated and saved to {output_sql_path}")
 
@@ -35,7 +35,7 @@ def generate_address_update_transaction():
         open(output_sql_path, mode='w', newline='', encoding='utf-8-sig') as sql_file:
 
         # Read all of the customer data into a dict
-        reader1 = csv.DictReader(customer_data_csv_file, delimiter=';') # Delimiter is ; instead of , for Portugal PC
+        reader1 = csv.DictReader(customer_data_csv_file, delimiter=',') # Delimiter is , on MySQL Workbench, change if necessary
         customer_data = {}
 
         for row in reader1:
