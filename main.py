@@ -1,9 +1,9 @@
 import csv
 
-db_name = '' # Set this to the appropriate DB
-address_data_csv_path = '' # The customer address info, exported from an Excel worksheet
+db_name = 'magento' # Set this to the appropriate DB
+address_data_csv_path = 'test.csv' # The customer address info, exported from an Excel worksheet
 select_statement_sql_path = 'select_statement.sql' # Where the file containing the SQL SELECT statement will be generated
-customer_data_csv_path = '' # The customer data results of the SELECT query, exported from MySQL workbench
+customer_data_csv_path = 'test_results.csv' # The customer data results of the SELECT query, exported from MySQL workbench
 update_transaction_sql_path = 'transaction.sql' # Where the file containing the SQL update transaction will be generated
 customer_ids_list_path = 'customer_ids.csv' # File containing a list of ids for the customers that were found in the DB
 
@@ -47,14 +47,15 @@ def generate_address_update_transaction():
         customer_data = {}
 
         for row in reader1:
-            buyer_id = check_for_null(row['entity_id'])
+            buyer_id = row['entity_id']
             customer_data[buyer_id] = {
                 'firstname': check_for_null(row['firstname']),
                 'lastname': check_for_null(row['lastname']),
                 'phone_number': check_for_null(row['phone_number'])
             }
 
-        customer_ids_file.write(f"CUSTOMER ENTITY IDS:\n {customer_data.keys()}\n\n") # Saving customer ids for additional scripts - backup, rollback, etc
+        customer_ids_file.write(f"CUSTOMER ENTITY IDS:\n")
+        customer_ids_file.write(f"{', '.join(customer_data.keys())}\n\n") # Saving customer ids for additional scripts - backup, rollback, etc
                 
         # Write the SQL transaction for updating addresses, specifying the transaction security level to facilitate being ACID
         sql_file.write("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n\n") # Isolation level wouldn't change in MySQL workbench without setting for entire session instead of just transaction
