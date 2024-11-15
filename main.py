@@ -4,7 +4,8 @@ db_name = '' # Set this to the appropriate DB
 address_data_csv_path = '' # The customer address info, exported from an Excel worksheet
 select_statement_sql_path = 'select_statement.sql' # Where the file containing the SQL SELECT statement will be generated
 customer_data_csv_path = '' # The customer data results of the SELECT query, exported from MySQL workbench
-update_transaction_sql_path = 'transaction.sql' # # Where the file containing the SQL update transaction will be generated
+update_transaction_sql_path = 'transaction.sql' # Where the file containing the SQL update transaction will be generated
+customer_ids_list_path = 'customer_ids.csv' # File containing a list of ids for the customers that were found in the DB
 
 # Generate the SELECT statement for fetching the existing customer details - to be used for creating new customer address records
 def generate_customer_data_select_query():
@@ -38,7 +39,8 @@ def generate_address_update_transaction():
     # Open the CSV input and output SQL files
     with open(customer_data_csv_path, mode='r', newline='', encoding='utf-8-sig') as customer_data_csv_file, \
         open(address_data_csv_path, mode='r', newline='', encoding='utf-8-sig') as address_data_csv_file, \
-        open(update_transaction_sql_path, mode='w', newline='', encoding='utf-8-sig') as sql_file:
+        open(update_transaction_sql_path, mode='w', newline='', encoding='utf-8-sig') as sql_file, \
+        open(customer_ids_list_path, mode='w', newline='', encoding='utf-8-sig') as customer_ids_file:
 
         # Read all of the customer data into a dict
         reader1 = csv.DictReader(customer_data_csv_file, delimiter=',') # Delimiter is , on MySQL Workbench, change if necessary
@@ -51,6 +53,8 @@ def generate_address_update_transaction():
                 'lastname': check_for_null(row['lastname']),
                 'phone_number': check_for_null(row['phone_number'])
             }
+
+        customer_ids_file.write(f"CUSTOMER ENTITY IDS:\n {customer_data.keys()}\n\n") # Saving customer ids for additional scripts - backup, rollback, etc
                 
         # Write the SQL transaction for updating addresses, specifying the transaction security level to facilitate being ACID
         sql_file.write("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n\n") # Isolation level wouldn't change in MySQL workbench without setting for entire session instead of just transaction
@@ -60,6 +64,9 @@ def generate_address_update_transaction():
             # Read csv address data - to combine with customer data when creating new address records below
             reader2 = csv.DictReader(address_data_csv_file, delimiter=';') # Delimiter is ; instead of , for Portugal PC
             unique_customers = set() # There are some customers with multiple addresses in the csv, but we only want to use their first one
+
+            sql_file.write(f"-- Creating table for storing entity ids of all newly-created address records (for rollback scripts, etc)\n")
+            sql_file.write(f"CREATE TABLE {db_name}.new_address_ids (id INT AUTO_INCREMENT PRIMARY KEY, address_entity_id INT NOT NULL);\n\n")
 
             for row in reader2:
                 buyer_id = check_for_null(row['Buyer ID'.strip()])
@@ -84,12 +91,16 @@ def generate_address_update_transaction():
                     
                     # Get the ID of the newly-created address record
                     sql_file.write(f"SET @new_address_id = LAST_INSERT_ID();\n\n")
+
+                    # Add new address record id to separate table for keepsake
+                    sql_file.write(f"-- Saving id of newly-created address record to separate DB table (for rollback scripts, etc)\n")
+                    sql_file.write(f"INSERT INTO {db_name}.new_address_ids (address_entity_id) VALUES (@new_address_id);\n\n")
                     
                     # Set new address as default billing and shipping address for the customer
                     sql_file.write(f"-- Setting new address as default billing and shipping for Buyer ID: {buyer_id}\n")
                     sql_file.write(f"UPDATE {db_name}.customer_entity SET default_billing = @new_address_id, default_shipping = @new_address_id WHERE entity_id = {buyer_id};\n\n")
                     
-                    # Delete other addresses for this customer - Wesley said to leave this for now
+                    # Delete other addresses for this customer - Wesley said to leave this for now. If used remember to update 'additional_scripts' file with rollback & validation for this!
                     # sql_file.write(f"-- Deleting non-default addresses for Buyer ID: {buyer_id}\n")
                     # sql_file.write(f"DELETE FROM {db_name}.customer_address_entity WHERE parent_id = {buyer_id} AND entity_id != @new_address_id;\n\n")
             
