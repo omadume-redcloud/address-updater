@@ -1,9 +1,9 @@
 import csv
 
-db_name = 'magento' # Set this to the appropriate DB
-address_data_csv_path = 'test.csv' # The customer address info, exported from an Excel worksheet
+db_name = '' # Set this to the appropriate DB
+address_data_csv_path = '' # The customer address info, exported from an Excel worksheet
 select_statement_sql_path = 'select_statement.sql' # Where the file containing the SQL SELECT statement will be generated
-customer_data_csv_path = 'test_results.csv' # The customer data results of the SELECT query, exported from MySQL workbench
+customer_data_csv_path = '' # The customer data results of the SELECT query, exported from MySQL workbench
 update_transaction_sql_path = 'transaction.sql' # Where the file containing the SQL update transaction will be generated
 customer_ids_list_path = 'customer_ids.csv' # File containing a list of ids for the customers that were found in the DB
 
@@ -70,7 +70,7 @@ def generate_address_update_transaction():
             sql_file.write(f"CREATE TABLE {db_name}.new_address_ids (id INT AUTO_INCREMENT PRIMARY KEY, address_entity_id INT NOT NULL);\n\n")
 
             for row in reader2:
-                buyer_id = check_for_null(row['Buyer ID'.strip()])
+                buyer_id = row['Buyer ID'.strip()]
                 street = check_for_null(row['Street Number'.strip()])
                 city = check_for_null(row['City'.strip()])
                 postcode = check_for_null(row['Postal Code'.strip()])

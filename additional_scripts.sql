@@ -51,5 +51,8 @@ SELECT
         THEN 'True' 
         ELSE 'False' 
      END) AS counts_match;
--- Cleanup new_address_ids which is no longer needed
+
+-- Cleanup scripts:
 DROP TABLE <db_name>.new_address_ids;
+DROP TABLE <db_name>.backup_customer_entity;
+DROP TABLE <db_name>.backup_customer_address_entity;
