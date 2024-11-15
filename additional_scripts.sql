@@ -4,7 +4,7 @@ CREATE TABLE <db_name>.backup_customer_entity AS SELECT * FROM <db_name>.custome
 CREATE TABLE <db_name>.backup_customer_address_entity AS SELECT * FROM <db_name>.customer_address_entity;
 -- For the specific customer records only
 CREATE TABLE <db_name>.backup_customer_entity AS SELECT * FROM <db_name>.customer_entity WHERE entity_id IN (<customer_ids>);
-CREATE TABLE <db_name>.backup_customer_address_entity AS SELECT * FROM <db_name>.customer_address_entity WHERE entity_id IN (<customer_ids>);
+CREATE TABLE <db_name>.backup_customer_address_entity AS SELECT * FROM <db_name>.customer_address_entity WHERE parent_id IN (<customer_ids>);
 
 -- Validation scripts (after transaction completed successfully):
 SELECT 
