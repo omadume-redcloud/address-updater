@@ -1,12 +1,27 @@
 -- Backup scripts:
--- For entire tables
+-- For entire tables (if changing to do specific customers only, will need to update validation scripts below with WHERE condition also)
 CREATE TABLE <db_name>.backup_customer_entity AS SELECT * FROM <db_name>.customer_entity;
 CREATE TABLE <db_name>.backup_customer_address_entity AS SELECT * FROM <db_name>.customer_address_entity;
--- For the specific customer records only
-CREATE TABLE <db_name>.backup_customer_entity AS SELECT * FROM <db_name>.customer_entity WHERE entity_id IN (<customer_ids>);
-CREATE TABLE <db_name>.backup_customer_address_entity AS SELECT * FROM <db_name>.customer_address_entity WHERE parent_id IN (<customer_ids>);
 
--- Validation scripts (after transaction completed successfully):
+-- Validation scripts:
+-- Validate backup tables are matching before executing transaction
+SELECT 
+    (CASE 
+        WHEN (SELECT MD5(GROUP_CONCAT(default_billing, default_shipping ORDER BY entity_id)) 
+              FROM <db_name>.customer_entity) = 
+             (SELECT MD5(GROUP_CONCAT(default_billing, default_shipping ORDER BY entity_id)) 
+              FROM <db_name>.backup_customer_entity) 
+        THEN 'True' 
+        ELSE 'False' 
+     END) AS checksums_match;
+
+SELECT 
+    (CASE 
+        WHEN (SELECT COUNT(*) FROM <db_name>.customer_address_entity) = (SELECT COUNT(*) FROM <db_name>.backup_customer_address_entity) 
+        THEN 'True' 
+        ELSE 'False' 
+     END) AS counts_match;
+-- Validate tables have been updated (after transaction has completed successfully)
 SELECT 
     (CASE 
         WHEN (SELECT MD5(GROUP_CONCAT(default_billing, default_shipping ORDER BY entity_id)) 
