@@ -22,15 +22,13 @@ SELECT
         ELSE 'False' 
      END) AS counts_match;
 -- Validate tables have been updated (after transaction has completed successfully)
-SELECT 
-    (CASE 
-        WHEN (SELECT MD5(GROUP_CONCAT(default_billing, default_shipping ORDER BY entity_id)) 
-              FROM <db_name>.customer_entity) != 
-             (SELECT MD5(GROUP_CONCAT(default_billing, default_shipping ORDER BY entity_id)) 
-              FROM <db_name>.backup_customer_entity) 
-        THEN 'True' 
-        ELSE 'False' 
-     END) AS data_changed;
+SELECT ce.entity_id, ce.default_billing, ce.default_shipping
+FROM <db_name>.customer_entity ce
+WHERE ce.entity_id IN (<customer_ids>)
+  AND (
+    ce.default_billing NOT IN (SELECT address_entity_id FROM <db_name>.new_address_ids)
+    OR ce.default_shipping NOT IN (SELECT address_entity_id FROM <db_name>.new_address_ids)
+  ) AS customers_with_incorrect_default_addresses; -- This should return no results if the transaction was successful
 
 SELECT 
     (CASE 

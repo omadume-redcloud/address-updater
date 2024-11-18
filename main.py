@@ -1,7 +1,7 @@
 import csv
 
-db_name = 'magento' # Set this to the appropriate DB
-address_data_csv_path = 'argentina_addresses_to_update.csv' # The customer address info, exported from an Excel worksheet
+db_name = '' # Set this to the appropriate DB
+address_data_csv_path = '' # The customer address info, exported from an Excel worksheet
 select_statement_sql_path = 'select_statement.sql' # Where the file containing the SQL SELECT statement will be generated
 customer_data_csv_path = '' # The customer data results of the SELECT query, exported from MySQL workbench
 update_transaction_sql_path = 'transaction.sql' # Where the file containing the SQL update transaction will be generated
@@ -32,7 +32,7 @@ def check_for_null(value):
     if value == "NULL" or value == "":
         return "NULL"
     else:
-        return f"'{value}'"
+        return f'"{value}"' # The values will be inserted using double quotes as some values (like names) contain single quotes
 
 # Generate the SQL transaction for performing the customer addresses update
 def generate_address_update_transaction():
@@ -43,7 +43,7 @@ def generate_address_update_transaction():
         open(customer_ids_list_path, mode='w', newline='', encoding='utf-8-sig') as customer_ids_file:
 
         # Read all of the customer data into a dict
-        reader1 = csv.DictReader(customer_data_csv_file, delimiter=';') # Delimiter is , on MySQL Workbench, change if necessary
+        reader1 = csv.DictReader(customer_data_csv_file, delimiter=',') # Delimiter is , on MySQL Workbench, change if necessary!
         customer_data = {}
 
         for row in reader1:
@@ -86,9 +86,9 @@ def generate_address_update_transaction():
                         telephone = check_for_null(row['Buyer Phone Number'.strip()]) # Attempting to use excel one instead of existing DB customer record one
                     
                     sql_file.write(f"-- Inserting new address for Buyer ID: {buyer_id}\n")
-                    sql_file.write(f"INSERT INTO {db_name}.customer_address_entity (parent_id, street, city, postcode, country_id, firstname, lastname, telephone) "
-                                   f"VALUES ({buyer_id}, {street}, {city}, {postcode}, '{country_id}', "
-                                   f"{customer['firstname']}, {customer['lastname']}, {telephone});\n\n")
+                    sql_file.write(f'INSERT INTO {db_name}.customer_address_entity (parent_id, street, city, postcode, country_id, firstname, lastname, telephone) '
+                                   f'VALUES ({buyer_id}, {street}, {city}, {postcode}, "{country_id}", '
+                                   f'{customer["firstname"]}, {customer["lastname"]}, {telephone});\n\n') # The values will be inserted using double quotes as some values (like names) contain single quotes
                     
                     # Get the ID of the newly-created address record
                     sql_file.write(f"SET @new_address_id = LAST_INSERT_ID();\n\n")
@@ -105,12 +105,12 @@ def generate_address_update_transaction():
                     # sql_file.write(f"-- Deleting non-default addresses for Buyer ID: {buyer_id}\n")
                     # sql_file.write(f"DELETE FROM {db_name}.customer_address_entity WHERE parent_id = {buyer_id} AND entity_id != @new_address_id;\n\n")
             
-            # Commit the transaction
-            sql_file.write("COMMIT;\n")
+            # Commit or rollback the transaction
+            sql_file.write("-- If no errors, uncomment and execute the COMMIT line below. Else, uncomment and execute ROLLBACK!\n")
+            sql_file.write("-- COMMIT;\n")
+            sql_file.write("-- ROLLBACK;\n")
 
         except Exception as e:
-            # Rollback the transaction in case of any error
-            sql_file.write("ROLLBACK;\n")
             print("An error occurred during script generation:", e)
         
     print(f"SQL script generated and saved to {update_transaction_sql_path}")
