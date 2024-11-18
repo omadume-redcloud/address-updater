@@ -1,7 +1,7 @@
 import csv
 
-db_name = '' # Set this to the appropriate DB
-address_data_csv_path = '' # The customer address info, exported from an Excel worksheet
+db_name = 'magento' # Set this to the appropriate DB
+address_data_csv_path = 'argentina_addresses_to_update.csv' # The customer address info, exported from an Excel worksheet
 select_statement_sql_path = 'select_statement.sql' # Where the file containing the SQL SELECT statement will be generated
 customer_data_csv_path = '' # The customer data results of the SELECT query, exported from MySQL workbench
 update_transaction_sql_path = 'transaction.sql' # Where the file containing the SQL update transaction will be generated
@@ -43,7 +43,7 @@ def generate_address_update_transaction():
         open(customer_ids_list_path, mode='w', newline='', encoding='utf-8-sig') as customer_ids_file:
 
         # Read all of the customer data into a dict
-        reader1 = csv.DictReader(customer_data_csv_file, delimiter=',') # Delimiter is , on MySQL Workbench, change if necessary
+        reader1 = csv.DictReader(customer_data_csv_file, delimiter=';') # Delimiter is , on MySQL Workbench, change if necessary
         customer_data = {}
 
         for row in reader1:
